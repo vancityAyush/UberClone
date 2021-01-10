@@ -2,6 +2,7 @@
 <androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/root_main"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     tools:context=".SignUpActivity">
@@ -10,7 +11,7 @@
         android:id="@+id/imageView3"
         android:layout_width="170dp"
         android:layout_height="92dp"
-        android:layout_marginTop="8dp"
+        android:layout_marginTop="24dp"
         android:adjustViewBounds="true"
         android:scaleType="fitCenter"
         app:layout_constraintEnd_toEndOf="parent"
@@ -21,27 +22,31 @@
 
     <EditText
         android:id="@+id/edtUsername"
-        android:layout_width="wrap_content"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_marginStart="16dp"
-        android:layout_marginTop="16dp"
+        android:layout_marginStart="24dp"
+        android:layout_marginTop="32dp"
+        android:layout_marginEnd="24dp"
         android:ems="10"
         android:hint="Enter your Username..."
         android:inputType="textPersonName"
         android:singleLine="true"
+        app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/imageView3" />
 
     <EditText
         android:id="@+id/edtPassword"
-        android:layout_width="wrap_content"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_marginStart="16dp"
+        android:layout_marginStart="24dp"
         android:layout_marginTop="8dp"
+        android:layout_marginEnd="24dp"
         android:ems="10"
         android:hint="Enter your Password..."
         android:inputType="textPassword"
         android:singleLine="true"
+        app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/edtUsername" />
 
@@ -49,7 +54,7 @@
         android:id="@+id/radioGroup"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="16dp"
+        android:layout_marginTop="24dp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/edtPassword">
@@ -71,7 +76,7 @@
         android:id="@+id/textView"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="16dp"
+        android:layout_marginTop="40dp"
         android:text="Don't want to Signup or Login?"
         android:textColor="#5E5A5A"
         app:layout_constraintEnd_toEndOf="parent"
@@ -83,7 +88,7 @@
         android:id="@+id/btnSingUpLogin"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="20dp"
+        android:layout_marginTop="32dp"
         android:backgroundTint="#3F51B5"
         android:backgroundTintMode="screen"
         android:text="Sign Up"
@@ -92,24 +97,26 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/radioGroup" />
 
-    <Switch
-        android:id="@+id/switchUserCategory"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="16dp"
-        android:text="Driver?"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/textView" />
-
     <Button
         android:id="@+id/btnOneTimeLogin"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
+        android:layout_marginTop="32dp"
         android:backgroundTint="#F44336"
-        android:text="One TimeLogin"
+        android:text="One Time Login"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/switchUserCategory" />
+        app:layout_constraintTop_toBottomOf="@+id/tbUserCategory" />
+
+    <ToggleButton
+        android:id="@+id/tbUserCategory"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="24dp"
+        android:text="Driver or Passenger"
+        android:textOff="Passenger"
+        android:textOn="Driver"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/textView" />
 </androidx.constraintlayout.widget.ConstraintLayout>
