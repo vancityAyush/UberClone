@@ -4,6 +4,7 @@ import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.constraintlayout.widget.ConstraintLayout;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.Menu;
@@ -22,6 +23,7 @@ import com.parse.ParseAnonymousUtils;
 import com.parse.ParseException;
 import com.parse.ParseInstallation;
 import com.parse.ParseUser;
+import com.parse.SaveCallback;
 import com.parse.SignUpCallback;
 import com.shashank.sony.fancytoastlib.FancyToast;
 
@@ -117,7 +119,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                             if(e==null){
                                 FancyToast.makeText(MainActivity.this,"Signed Up Successfully",Toast.LENGTH_SHORT,
                                         FancyToast.SUCCESS,false).show();
-                                //TODO transition to next activity
+                                transitionToPassengerActivity();
                             }else
                                 FancyToast.makeText(MainActivity.this,e.getMessage(),Toast.LENGTH_SHORT,
                                         FancyToast.ERROR,false).show();
@@ -132,7 +134,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                             if(user!=null &&  e==null) {
                                 FancyToast.makeText(MainActivity.this, "Logged In Successfully", Toast.LENGTH_SHORT,
                                         FancyToast.SUCCESS, false).show();
-                                //TODO go to next activity
+                                transitionToPassengerActivity();
 
                             }
                             else
@@ -151,8 +153,14 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                                         Toast.LENGTH_SHORT,FancyToast.SUCCESS,false).show();
                                 String userCategory = tbUserCategory.isChecked()?"Driver":"Passenger";
                                 user.put("as",userCategory);
-                                user.saveInBackground();
-                                Log.i("TAG",userCategory);
+                                user.saveInBackground(new SaveCallback() {
+                                    @Override
+                                    public void done(ParseException e) {
+                                        if(e==null){
+                                            transitionToPassengerActivity();
+                                        }
+                                    }
+                                });
                             }
                         }
                     });
@@ -168,6 +176,15 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                     e.printStackTrace();
                 }
                 break;
+        }
+
+    }
+    private void transitionToPassengerActivity(){
+        if(ParseUser.getCurrentUser()!=null){
+            if(ParseUser.getCurrentUser().get("as").equals("Passenger")){
+                Intent intent = new Intent(MainActivity.this,PassengersActivity.class);
+                startActivity(intent);
+            }
         }
 
     }
