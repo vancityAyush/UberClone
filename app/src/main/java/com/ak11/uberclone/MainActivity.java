@@ -4,7 +4,10 @@ import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.constraintlayout.widget.ConstraintLayout;
 
+import android.animation.Animator;
 import android.content.Intent;
+import android.content.res.ColorStateList;
+import android.graphics.Color;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.Menu;
@@ -14,6 +17,7 @@ import android.view.inputmethod.InputMethodManager;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.RadioButton;
+import android.widget.RadioGroup;
 import android.widget.Switch;
 import android.widget.Toast;
 import android.widget.ToggleButton;
@@ -37,6 +41,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private RadioButton rbPassenger, rbDriver;
     private ToggleButton tbUserCategory;
     private ConstraintLayout root;
+    private RadioGroup radioGroup;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -45,7 +50,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         ParseInstallation.getCurrentInstallation().saveInBackground();
 
         if (ParseUser.getCurrentUser() != null) {
-            ParseUser.logOut();
+            transitionToPassengerActivity();
+            transitionToDriverActivity();
         }
 
         state = State.SIGNUP;
@@ -57,7 +63,9 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         rbDriver = findViewById(R.id.rbDriver);
         tbUserCategory = findViewById(R.id.tbUserCategory);
         root=findViewById(R.id.root_main);
+        radioGroup=findViewById(R.id.radioGroup);
 
+        btnSignUpLogin.setBackgroundTintList(ColorStateList.valueOf(Color.GREEN));
         btnSignUpLogin.setOnClickListener(this);
         btnOneTimeLogin.setOnClickListener(this);
         root.setOnClickListener(this);
@@ -77,15 +85,26 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                     state = State.LOGIN;
                     item.setTitle("Sign Up");
                     btnSignUpLogin.setText("Login");
-                    rbDriver.setEnabled(false);
-                    rbPassenger.setEnabled(false);
+                    btnSignUpLogin.setBackgroundTintList(ColorStateList.valueOf(Color.CYAN));
+                    radioGroup.animate().alpha(0f).setDuration(500).withEndAction(new Runnable() {
+                        @Override
+                        public void run() {
+                            radioGroup.setVisibility(View.GONE);
+
+                        }
+                    });
 
                 }else {
                     state = State.SIGNUP;
                     item.setTitle("Log In");
                     btnSignUpLogin.setText("Signup");
-                    rbDriver.setEnabled(true);
-                    rbPassenger.setEnabled(true);
+                    btnSignUpLogin.setBackgroundTintList(ColorStateList.valueOf(Color.GREEN));
+                    radioGroup.animate().alpha(1f).setDuration(500).withEndAction(new Runnable() {
+                        @Override
+                        public void run() {
+                            radioGroup.setVisibility(View.VISIBLE);
+                        }
+                    });
 
                 }
                 break;
@@ -120,6 +139,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                                 FancyToast.makeText(MainActivity.this,"Signed Up Successfully",Toast.LENGTH_SHORT,
                                         FancyToast.SUCCESS,false).show();
                                 transitionToPassengerActivity();
+                                transitionToDriverActivity();
                             }else
                                 FancyToast.makeText(MainActivity.this,e.getMessage(),Toast.LENGTH_SHORT,
                                         FancyToast.ERROR,false).show();
@@ -135,6 +155,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                                 FancyToast.makeText(MainActivity.this, "Logged In Successfully", Toast.LENGTH_SHORT,
                                         FancyToast.SUCCESS, false).show();
                                 transitionToPassengerActivity();
+                                transitionToDriverActivity();
 
                             }
                             else
@@ -158,6 +179,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                                     public void done(ParseException e) {
                                         if(e==null){
                                             transitionToPassengerActivity();
+                                            transitionToDriverActivity();
                                         }
                                     }
                                 });
@@ -184,8 +206,17 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             if(ParseUser.getCurrentUser().get("as").equals("Passenger")){
                 Intent intent = new Intent(MainActivity.this,PassengersActivity.class);
                 startActivity(intent);
+                finish();
             }
         }
-
+    }
+    private void transitionToDriverActivity(){
+        if(ParseUser.getCurrentUser()!=null){
+            if(ParseUser.getCurrentUser().get("as").equals("Driver")){
+                Intent intent = new Intent(MainActivity.this,DriverRequestListActivity.class);
+                startActivity(intent);
+                finish();
+            }
+        }
     }
 }
