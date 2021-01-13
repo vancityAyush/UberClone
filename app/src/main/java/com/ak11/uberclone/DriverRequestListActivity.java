@@ -34,6 +34,7 @@ import com.parse.ParseQuery;
 import com.parse.ParseUser;
 import com.shashank.sony.fancytoastlib.FancyToast;
 
+import java.security.acl.Permission;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.List;
@@ -84,6 +85,15 @@ public class DriverRequestListActivity extends AppCompatActivity {
                 }
             }
         });
+        if(ContextCompat.checkSelfPermission(DriverRequestListActivity.this,Manifest.permission.ACCESS_FINE_LOCATION)== PackageManager.PERMISSION_GRANTED){
+            try {
+                locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0, locationListener);
+                updateRequestListView(locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER));
+            }
+            catch (Exception e){
+                e.printStackTrace();
+            }
+            }
 
 
     }
@@ -151,7 +161,7 @@ public class DriverRequestListActivity extends AppCompatActivity {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
         if(requestCode==1000 && grantResults.length>0 && grantResults[0]==PackageManager.PERMISSION_GRANTED){
             locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER,0,0,locationListener);
-            updateRequestListView(locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER));
+            //updateRequestListView(locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER));
         }
     }
 }
