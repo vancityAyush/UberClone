@@ -142,7 +142,7 @@ public class PassengersActivity extends FragmentActivity implements OnMapReadyCa
                 Location passengerCurrentLocation = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
                 if (passengerCurrentLocation != null) {
                     ParseObject requestCar = new ParseObject("RequestCar");
-                    requestCar.put("username", ParseUser.getCurrentUser());
+                    requestCar.put("username", ParseUser.getCurrentUser().getUsername());
 
                     ParseGeoPoint userLocation = new ParseGeoPoint(passengerCurrentLocation.getLatitude(),
                             passengerCurrentLocation.getLongitude());

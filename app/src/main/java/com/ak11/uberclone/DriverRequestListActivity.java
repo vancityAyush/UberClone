@@ -15,29 +15,47 @@ import android.location.LocationListener;
 import android.location.LocationManager;
 import android.os.Build;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.widget.ArrayAdapter;
 import android.widget.ListView;
+import android.widget.Toast;
 
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.MarkerOptions;
+import com.parse.FindCallback;
 import com.parse.LogOutCallback;
 import com.parse.ParseException;
+import com.parse.ParseGeoPoint;
+import com.parse.ParseObject;
+import com.parse.ParseQuery;
 import com.parse.ParseUser;
+import com.shashank.sony.fancytoastlib.FancyToast;
+
+import java.text.DecimalFormat;
+import java.util.ArrayList;
+import java.util.List;
 
 public class DriverRequestListActivity extends AppCompatActivity {
     private SwipeRefreshLayout swipeRefreshLayout;
-    private ListView listView;
     private LocationManager locationManager;
     private LocationListener locationListener;
+    private  ListView listView;
+    private ArrayList<String> driveRequests;
+    private ArrayAdapter adapter;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_driver_request_list);
+        listView  = findViewById(R.id.requestListView);
+        driveRequests = new ArrayList<>();
+        adapter = new ArrayAdapter(this, android.R.layout.simple_list_item_1, driveRequests);
+        listView.setAdapter(adapter);
         swipeRefreshLayout = findViewById(R.id.swipeRefreshLayout);
-        listView = findViewById(R.id.requestListView);
         swipeRefreshLayout.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
             @SuppressLint("MissingPermission")
             @Override
@@ -54,11 +72,12 @@ public class DriverRequestListActivity extends AppCompatActivity {
                     locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER,0,0,locationListener);
                 }else {
                     if(ContextCompat.checkSelfPermission(DriverRequestListActivity.this, Manifest.permission.ACCESS_FINE_LOCATION)!= PackageManager.PERMISSION_GRANTED){
-                        ActivityCompat.requestPermissions(DriverRequestListActivity.this,new String[]{Manifest.permission.ACCESS_FINE_LOCATION},100);
-                    }else{
+                        ActivityCompat.requestPermissions(DriverRequestListActivity.this,new String[]{Manifest.permission.ACCESS_FINE_LOCATION},1000);
+                    }
+                    else{
                         locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER,0,0,locationListener);
-                        Location currentPassengerLocation = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
-                        updateRequestListView(currentPassengerLocation);
+                        Location currentDriverLocation = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
+                        updateRequestListView(currentDriverLocation);
 
                     }
 
@@ -69,11 +88,39 @@ public class DriverRequestListActivity extends AppCompatActivity {
 
     }
 
-    private void updateRequestListView(Location currentPassengerLocation) {
-        LatLng passengerLocation  = new LatLng(currentPassengerLocation.getLatitude(),currentPassengerLocation.getLongitude());
-//        mMap.clear();
-//        mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(passengerLocation,15));
-//        mMap.addMarker(new MarkerOptions().position(passengerLocation)).setTitle("You are Here!");
+    private void updateRequestListView(Location driverLocation) {
+        if(driverLocation!=null) {
+            driveRequests.clear();
+            ParseGeoPoint driverCurrentLocation = new ParseGeoPoint(driverLocation.getLatitude(),driverLocation.getLongitude());
+            ParseQuery<ParseObject> requestCarQuery = ParseQuery.getQuery("RequestCar");
+            requestCarQuery.whereNear("passengerLocation",driverCurrentLocation);
+            requestCarQuery.findInBackground(new FindCallback<ParseObject>() {
+                @Override
+                public void done(List<ParseObject> objects, ParseException e) {
+                    if(e==null) {
+                        driveRequests.clear();
+                        if (objects.size() > 0) {
+                            for (ParseObject nearRequest : objects) {
+                                Double myDistanceToPassenger = driverCurrentLocation.distanceInKilometersTo((ParseGeoPoint) (nearRequest.get("passengerLocation")));
+                                float roundedDistanceValue = Math.round(myDistanceToPassenger * 100) / 100;
+                                driveRequests.add("There are " + roundedDistanceValue + " km to " + nearRequest.get("username"));
+                                adapter.notifyDataSetChanged();
+                                swipeRefreshLayout.setRefreshing(false);
+                            }
+                        } else {
+                            FancyToast.makeText(DriverRequestListActivity.this, "Sorry no Requests here", Toast.LENGTH_SHORT,
+                                    FancyToast.INFO, false);
+                        }
+                    }
+                    else{
+                        FancyToast.makeText(DriverRequestListActivity.this, e.getMessage(), Toast.LENGTH_SHORT,
+                                FancyToast.ERROR, false);
+
+                    }
+                }
+            });
+            swipeRefreshLayout.setRefreshing(false);
+        }
     }
 
     @Override
