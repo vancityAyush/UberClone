@@ -4,12 +4,17 @@ import androidx.fragment.app.FragmentActivity;
 
 import android.os.Bundle;
 
+import com.google.android.gms.maps.CameraUpdate;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.LatLngBounds;
+import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
+
+import java.util.ArrayList;
 
 public class ViewLocationsMapsActivity extends FragmentActivity implements OnMapReadyCallback {
 
@@ -37,10 +42,31 @@ public class ViewLocationsMapsActivity extends FragmentActivity implements OnMap
     @Override
     public void onMapReady(GoogleMap googleMap) {
         mMap = googleMap;
+//
+//        // Add a marker in Sydney and move the camera
+//        mMap.addMarker(new MarkerOptions().position(dLocation).title("You"));
+//        //mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(dLocation,15));
+//
+//       );
+//        mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(pLocation,15));
 
-        // Add a marker in Sydney and move the camera
-        LatLng sydney = new LatLng(-34, 151);
-        mMap.addMarker(new MarkerOptions().position(sydney).title("Marker in Sydney"));
-        mMap.moveCamera(CameraUpdateFactory.newLatLng(sydney));
+        LatLngBounds.Builder builder = new LatLngBounds.Builder();
+        LatLng pLocation = new LatLng(getIntent().getDoubleExtra("pLatitude",0),getIntent().getDoubleExtra("pLongitude",0));
+        LatLng dLocation = new LatLng(getIntent().getDoubleExtra("dLatitude",0),getIntent().getDoubleExtra("dLongitude",0));
+        Marker driverMarker = mMap.addMarker(new MarkerOptions().position(dLocation).title("You"));
+        Marker passengerMarker = mMap.addMarker(new MarkerOptions().position(pLocation).title(getIntent().getStringExtra("username")));
+
+        ArrayList<Marker> myMarker = new ArrayList<>();
+        myMarker.add(driverMarker);
+        myMarker.add(passengerMarker);
+        for(Marker marker : myMarker){
+            builder.include(marker.getPosition());
+        }
+        LatLngBounds bounds = builder.build();
+        CameraUpdate cameraUpdate = CameraUpdateFactory.newLatLngBounds(bounds,0);
+        mMap.animateCamera(cameraUpdate);
+
+
+
     }
 }

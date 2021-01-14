@@ -18,6 +18,8 @@ import android.os.Bundle;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.View;
+import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.ListView;
 import android.widget.Toast;
@@ -39,7 +41,7 @@ import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.List;
 
-public class DriverRequestListActivity extends AppCompatActivity {
+public class DriverRequestListActivity extends AppCompatActivity implements SwipeRefreshLayout.OnRefreshListener {
     private SwipeRefreshLayout swipeRefreshLayout;
     private LocationManager locationManager;
     private LocationListener locationListener;
@@ -64,7 +66,6 @@ public class DriverRequestListActivity extends AppCompatActivity {
         adapter = new ArrayAdapter(this, android.R.layout.simple_list_item_1, driveRequests);
         listView.setAdapter(adapter);
         swipeRefreshLayout = findViewById(R.id.swipeRefreshLayout);
-
         if(ContextCompat.checkSelfPermission(DriverRequestListActivity.this,Manifest.permission.ACCESS_FINE_LOCATION)== PackageManager.PERMISSION_GRANTED || Build.VERSION.SDK_INT <23){
             locationManager = (LocationManager) getSystemService(LOCATION_SERVICE);
             locationListener = new LocationListener() {
@@ -78,29 +79,28 @@ public class DriverRequestListActivity extends AppCompatActivity {
             }
 
         //Refresh Button codes
-        swipeRefreshLayout.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
-            @SuppressLint("MissingPermission")
+        swipeRefreshLayout.setOnRefreshListener(this);
+        listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
-            public void onRefresh() {
+            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+                if(ContextCompat.checkSelfPermission(DriverRequestListActivity.this,Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED){
+                    Location cdLocation = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
+                    Intent intent = new Intent(DriverRequestListActivity.this,ViewLocationsMapsActivity.class);
+                    if(cdLocation!=null) {
+                        intent.putExtra("dLatitude", cdLocation.getLatitude());
+                        intent.putExtra("dLongitude", cdLocation.getLongitude());
+                        intent.putExtra("pLatitude", passengerLatitudes.get(position));
+                        intent.putExtra("pLongitude", passengerLongitudes.get(position));
+                        intent.putExtra("pUsername", passengerUsername.get(position));
 
-                if(Build.VERSION.SDK_INT <23) {
-                    Location currentLocation = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
-                    updateRequestListView(currentLocation);
-                }
-                else{
-                        if(ContextCompat.checkSelfPermission(DriverRequestListActivity.this, Manifest.permission.ACCESS_FINE_LOCATION)!= PackageManager.PERMISSION_GRANTED){
-                            ActivityCompat.requestPermissions(DriverRequestListActivity.this,new String[]{Manifest.permission.ACCESS_FINE_LOCATION},1000);
-                        }
-                        else{
-                            //locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER,0,0,locationListener);
-                            Location currentDriverLocation = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
-                            updateRequestListView(currentDriverLocation);
-
-                        }
-
+                        startActivity(intent);
                     }
+
                 }
+            }
         });
+        swipeRefreshLayout.setRefreshing(true);
+        onRefresh();
     }
 
     private void updateRequestListView(Location driverLocation) {
@@ -181,4 +181,26 @@ public class DriverRequestListActivity extends AppCompatActivity {
             updateRequestListView(locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER));
         }
     }
-}
+
+    @Override
+    public void onRefresh() {
+
+            if(Build.VERSION.SDK_INT <23) {
+                @SuppressLint("MissingPermission")
+                Location currentLocation = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
+                updateRequestListView(currentLocation);
+            }
+            else{
+                if(ContextCompat.checkSelfPermission(DriverRequestListActivity.this, Manifest.permission.ACCESS_FINE_LOCATION)!= PackageManager.PERMISSION_GRANTED){
+                    ActivityCompat.requestPermissions(DriverRequestListActivity.this,new String[]{Manifest.permission.ACCESS_FINE_LOCATION},1000);
+                }
+                else{
+                    //locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER,0,0,locationListener);
+                    Location currentDriverLocation = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
+                    updateRequestListView(currentDriverLocation);
+
+                }
+
+            }
+        }
+    }
