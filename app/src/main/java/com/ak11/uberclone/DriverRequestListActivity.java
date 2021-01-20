@@ -34,6 +34,7 @@ import com.parse.ParseGeoPoint;
 import com.parse.ParseObject;
 import com.parse.ParseQuery;
 import com.parse.ParseUser;
+import com.parse.SaveCallback;
 import com.shashank.sony.fancytoastlib.FancyToast;
 
 import java.security.acl.Permission;
@@ -68,14 +69,7 @@ public class DriverRequestListActivity extends AppCompatActivity implements Swip
         swipeRefreshLayout = findViewById(R.id.swipeRefreshLayout);
         if(ContextCompat.checkSelfPermission(DriverRequestListActivity.this,Manifest.permission.ACCESS_FINE_LOCATION)== PackageManager.PERMISSION_GRANTED || Build.VERSION.SDK_INT <23){
             locationManager = (LocationManager) getSystemService(LOCATION_SERVICE);
-            locationListener = new LocationListener() {
-                @SuppressLint("MissingPermission")
-                @Override
-                public void onLocationChanged(@NonNull Location location) {
-                    locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0, locationListener);
-                    updateRequestListView(location);
-                }
-                };
+            initializeLocationListener();
             }
 
         //Refresh Button codes
@@ -92,6 +86,8 @@ public class DriverRequestListActivity extends AppCompatActivity implements Swip
                         intent.putExtra("pLatitude", passengerLatitudes.get(position));
                         intent.putExtra("pLongitude", passengerLongitudes.get(position));
                         intent.putExtra("pUsername", passengerUsername.get(position));
+                        ArrayList<String> okay = passengerUsername;
+                        int i=5;
 
                         startActivity(intent);
                     }
@@ -105,8 +101,11 @@ public class DriverRequestListActivity extends AppCompatActivity implements Swip
 
     private void updateRequestListView(Location driverLocation) {
         if(driverLocation!=null) {
+            saveDriverLocationToParse(driverLocation);
             ParseGeoPoint driverCurrentLocation = new ParseGeoPoint(driverLocation.getLatitude(),driverLocation.getLongitude());
             ParseQuery<ParseObject> requestCarQuery = ParseQuery.getQuery("RequestCar");
+            //TODO remove comment
+            //requestCarQuery.whereDoesNotExist("driverOfMe");
             requestCarQuery.whereNear("passengerLocation",driverCurrentLocation);
             requestCarQuery.findInBackground(new FindCallback<ParseObject>() {
                 @Override
@@ -119,8 +118,9 @@ public class DriverRequestListActivity extends AppCompatActivity implements Swip
                                 passengerLongitudes.clear();
                             if(passengerLatitudes.size()>0)
                                 passengerLatitudes.clear();
+                            if(passengerUsername.size()>0)
+                                passengerUsername.clear();
                             for (ParseObject nearRequest : objects) {
-
                                 ParseGeoPoint passengerGeoPoint = (ParseGeoPoint)  nearRequest.get("passengerLocation");
                                 Double myDistanceToPassenger = driverCurrentLocation.distanceInKilometersTo(passengerGeoPoint);
                                 float roundedDistanceValue = Math.round(myDistanceToPassenger * 100) / 100;
@@ -177,6 +177,7 @@ public class DriverRequestListActivity extends AppCompatActivity implements Swip
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
         if(requestCode==1000 && grantResults.length>0 && grantResults[0]==PackageManager.PERMISSION_GRANTED){
+            initializeLocationListener();
             locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER,0,0,locationListener);
             updateRequestListView(locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER));
         }
@@ -202,5 +203,29 @@ public class DriverRequestListActivity extends AppCompatActivity implements Swip
                 }
 
             }
+        }
+        private void  initializeLocationListener(){
+            locationListener = new LocationListener() {
+                @SuppressLint("MissingPermission")
+                @Override
+                public void onLocationChanged(@NonNull Location location) {
+                    locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0, locationListener);
+                    updateRequestListView(location);
+                }
+            };
+        }
+        private void saveDriverLocationToParse(Location location){
+         ParseUser driver = ParseUser.getCurrentUser();
+         ParseGeoPoint driverLocation = new ParseGeoPoint(location.getLatitude(),location.getLongitude());
+         driver.put("driverLocation",driverLocation);
+         driver.saveInBackground(new SaveCallback() {
+             @Override
+             public void done(ParseException e) {
+                 if(e==null){
+                     FancyToast.makeText(DriverRequestListActivity.this,"Location saved",Toast.LENGTH_SHORT,
+                             FancyToast.INFO,false).show();
+                 }
+             }
+         });
         }
     }

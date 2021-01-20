@@ -16,16 +16,21 @@ import android.location.LocationListener;
 import android.location.LocationManager;
 import android.os.Build;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.Toast;
 
+import com.google.android.gms.maps.CameraUpdate;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
+import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.CircleOptions;
 import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.LatLngBounds;
+import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.parse.DeleteCallback;
 import com.parse.FindCallback;
@@ -38,7 +43,10 @@ import com.parse.ParseUser;
 import com.parse.SaveCallback;
 import com.shashank.sony.fancytoastlib.FancyToast;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Timer;
+import java.util.TimerTask;
 
 public class PassengersActivity extends FragmentActivity implements OnMapReadyCallback, View.OnClickListener {
 
@@ -47,6 +55,8 @@ public class PassengersActivity extends FragmentActivity implements OnMapReadyCa
     private LocationListener locationListener;
     private Button btnRequestCar;
     private boolean isRideCancelled = true;
+    private boolean isCarReady = false;
+    private Timer t;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -61,12 +71,13 @@ public class PassengersActivity extends FragmentActivity implements OnMapReadyCa
         btnRequestCar.setOnClickListener(this);
 
         ParseQuery<ParseObject> carRequestQuery = ParseQuery.getQuery("RequestCar");
-        carRequestQuery.whereEqualTo("username",ParseUser.getCurrentUser());
+        carRequestQuery.whereEqualTo("username",ParseUser.getCurrentUser().getUsername());
         carRequestQuery.findInBackground(new FindCallback<ParseObject>() {
             @Override
             public void done(List<ParseObject> objects, ParseException e) {
                 if(objects.size()>0 && e==null){
                     changeButton();
+                    getDriverUpdates();
                 }
             }
         });
@@ -85,7 +96,12 @@ public class PassengersActivity extends FragmentActivity implements OnMapReadyCa
             }
         });
 
-
+        findViewById(R.id.btnUpdate).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                getDriverUpdates();
+            }
+        });
     }
 
 
@@ -127,10 +143,12 @@ public class PassengersActivity extends FragmentActivity implements OnMapReadyCa
         }
     }
     private void updateCameraPassengerLocation(Location pLocation){
-        LatLng passengerLocation  = new LatLng(pLocation.getLatitude(),pLocation.getLongitude());
-        mMap.clear();
-        mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(passengerLocation,15));
-        mMap.addMarker(new MarkerOptions().position(passengerLocation)).setTitle("You are Here!");
+        if(!isCarReady) {
+            LatLng passengerLocation = new LatLng(pLocation.getLatitude(), pLocation.getLongitude());
+            mMap.clear();
+            mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(passengerLocation, 15));
+            mMap.addMarker(new MarkerOptions().position(passengerLocation)).setTitle("You are Here!");
+        }
 
     }
 
@@ -171,7 +189,7 @@ public class PassengersActivity extends FragmentActivity implements OnMapReadyCa
         else
         {
             ParseQuery<ParseObject> carRequestQuery = ParseQuery.getQuery("RequestCar");
-            carRequestQuery.whereEqualTo("username",ParseUser.getCurrentUser());
+            carRequestQuery.whereEqualTo("username",ParseUser.getCurrentUser().getUsername());
             carRequestQuery.findInBackground(new FindCallback<ParseObject>() {
                 @Override
                 public void done(List<ParseObject> requestList, ParseException e) {
@@ -212,4 +230,83 @@ public class PassengersActivity extends FragmentActivity implements OnMapReadyCa
 
         }
     }
+    private  void getDriverUpdates(){
+        t= new Timer();
+        t.scheduleAtFixedRate(new TimerTask() {
+            @Override
+            public void run() {
+                ParseQuery<ParseObject> requestDriverQuery = ParseQuery.getQuery("RequestCar");
+                requestDriverQuery.whereEqualTo("username",ParseUser.getCurrentUser().getUsername());
+                requestDriverQuery.whereEqualTo("requestAccepted",true);
+                requestDriverQuery.whereExists("driverOfMe");
+
+                requestDriverQuery.findInBackground(new FindCallback<ParseObject>() {
+                    @Override
+                    public void done(List<ParseObject> objects, ParseException e) {
+                        if (objects.size() > 0 && e == null) {
+                            for (ParseObject requestObject : objects) {
+                                ParseQuery<ParseUser> driver = ParseUser.getQuery();
+                                driver.whereEqualTo("username", requestObject.getString("driverOfMe"));
+                                driver.findInBackground(new FindCallback<ParseUser>() {
+                                    @Override
+                                    public void done(List<ParseUser> drivers, ParseException e) {
+                                        if (objects.size() > 0 && e == null) {
+                                            isCarReady = true;
+                                            for (ParseUser driver : drivers) {
+                                                ParseGeoPoint driverLocation = driver.getParseGeoPoint("driverLocation");
+                                                @SuppressLint("MissingPermission") Location passengerLocation = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
+                                                ParseGeoPoint pLocationGeoPoint = new ParseGeoPoint(passengerLocation.getLatitude(), passengerLocation.getLongitude());
+                                                double kmsDistance = driverLocation.distanceInKilometersTo(pLocationGeoPoint);
+                                                 if (kmsDistance<0.1){
+                                                     requestObject.deleteInBackground(new DeleteCallback() {
+                                                         @Override
+                                                         public void done(ParseException e) {
+
+                                                             isCarReady=false;
+                                                             isRideCancelled=false;
+                                                             changeButton();
+                                                             FancyToast.makeText(PassengersActivity.this,"Your car is arrived",
+                                                                     Toast.LENGTH_SHORT,FancyToast.SUCCESS,false).show();
+
+                                                         }
+                                                     });
+                                                }
+                                                float roundedDistance = Math.round(kmsDistance * 100) / 100;
+                                                LatLngBounds.Builder builder = new LatLngBounds.Builder();
+                                                LatLng pLocation = new LatLng(driverLocation.getLatitude(), driverLocation.getLongitude());
+                                                LatLng dLocation = new LatLng(pLocationGeoPoint.getLatitude(), pLocationGeoPoint.getLongitude());
+                                                Marker driverMarker = mMap.addMarker(new MarkerOptions().position(dLocation));
+                                                Marker passengerMarker = mMap.addMarker(new MarkerOptions().position(pLocation).title("Driver Location").icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_YELLOW)));
+
+                                                ArrayList<Marker> myMarker = new ArrayList<>();
+                                                myMarker.add(driverMarker);
+                                                myMarker.add(passengerMarker);
+                                                for (Marker marker : myMarker) {
+                                                    builder.include(marker.getPosition());
+                                                }
+                                                LatLngBounds bounds = builder.build();
+                                                CameraUpdate cameraUpdate = CameraUpdateFactory.newLatLngBounds(bounds, 50);
+                                                mMap.animateCamera(cameraUpdate);
+
+                                            }
+                                        }
+                                    }
+                                });
+
+
+                            }
+                        }
+                        else {
+                            isCarReady=false;
+                            // e.printStackTrace();
+                        }
+
+                    }
+                });
+
+            }
+        },0,3000);
+
+    }
+
 }
