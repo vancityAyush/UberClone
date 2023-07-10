@@ -17,8 +17,8 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
-        app:srcCompat="@drawable/uber"
-        tools:srcCompat="@drawable/uber" />
+        app:srcCompat="@drawable/veloc"
+        tools:srcCompat="@drawable/veloc" />
 
     <EditText
         android:id="@+id/edtUsername"
